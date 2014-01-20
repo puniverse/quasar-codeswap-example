@@ -73,35 +73,3 @@ tasks.withType(JavaExec) {
     systemProperty "co.paralleluniverse.monitoring.flightRecorderLevel", "1"
     systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","100000" 
 }
-
-String mavenArtifactId = name
-
-group = mavenGroupId
-version = mavenVersion
-
-task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
-    classifier = 'sources'
-    from sourceSets.main.allSource
-}
-
-artifacts {
-    archives jar
-    archives sourcesJar
-}
-
-configure(install.repositories.mavenInstaller) {
-    pom.project {
-        groupId = mavenGroupId
-        artifactId = mavenArtifactId
-        version = mavenVersion
-    }
-}
-
-task createFolders(description: 'Creates the source folders if they do not exist.') doLast {
-    sourceSets*.allSource*.srcDirs*.each { File srcDir ->
-        if (!srcDir.isDirectory()) {
-            println "Creating source folder: ${srcDir}"
-            srcDir.mkdirs()
-        }
-    }
-}
