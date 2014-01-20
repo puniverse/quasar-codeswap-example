@@ -1,0 +1,107 @@
+//
+// This file is to be applied to every subproject.
+//
+
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'application'
+
+String mavenGroupId = 'co.paralleluniverse'
+String mavenVersion = '0.1-SNAPSHOT'
+
+sourceCompatibility = '1.7'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenLocal();
+    mavenCentral();
+    maven { url "https://oss.sonatype.org/content/repositories/releases" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+}
+
+configurations {
+    quasar
+}
+
+dependencies {
+    compile "co.paralleluniverse:quasar-core:0.4.0-SNAPSHOT"
+    compile "co.paralleluniverse:quasar-actors:0.4.0-SNAPSHOT"
+    quasar  "co.paralleluniverse:quasar-core:0.4.0-SNAPSHOT"
+    testCompile group: 'junit', name: 'junit', version: '4.10'
+}
+
+//task(run, dependsOn: 'classes', type: JavaExec) {
+run {
+    classpath = sourceSets.main.runtimeClasspath
+    if(project.hasProperty('args')){
+        args project.args.split('\\s+')
+    }
+    if(project.hasProperty('mainClass')){
+        main = project.mainClass
+    }
+}
+
+tasks.withType(JavaExec) {
+    jvmArgs '-server'
+    jvmArgs "-javaagent:${configurations.quasar.iterator().next()}" // =vdmc (verbose, debug, allow monitors, check class)
+    // systemProperty "co.paralleluniverse.fibers.DefaultFiberPool.parallelism", "4"
+    systemProperty "co.paralleluniverse.fibers.DefaultFiberPool.monitor", "JMX" // "METRICS" // "NONE" //
+    systemProperty "co.paralleluniverse.actors.moduleDir", "${rootProject.projectDir}/modules"
+    
+    // memory
+    jvmArgs '-Xmx1024m'
+    jvmArgs '-XX:+UseParallelGC'
+    jvmArgs '-XX:+UseCondCardMark'
+    // jvmArgs '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=50'
+    
+    // profiling
+    // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder'
+    // systemProperty 'co.paralleluniverse.db.monitoring.profileQueries', 'true'
+    // jvmArgs '-verbose:gc'
+    // jvmArgs '-XX:+UnlockDiagnosticVMOptions', '-XX:+TraceClassLoading', '-XX:+LogCompilation' // use with jitwatch
+    // jvmArgs '-XX:+UnlockDiagnosticVMOptions', '-XX:+PrintInlining'
+    
+    // logging
+    systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+    systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+    
+    // debugging
+    // jvmArgs '-ea'
+    // systemProperty "co.paralleluniverse.debugMode", "true"
+    systemProperty "co.paralleluniverse.globalFlightRecorder", "true"
+    systemProperty "co.paralleluniverse.flightRecorderDumpFile", "quasar.log"
+    systemProperty "co.paralleluniverse.monitoring.flightRecorderLevel", "1"
+    systemProperty "co.paralleluniverse.monitoring.flightRecorderSize","100000" 
+}
+
+String mavenArtifactId = name
+
+group = mavenGroupId
+version = mavenVersion
+
+task sourcesJar(type: Jar, dependsOn: classes, description: 'Creates a jar from the source files.') {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives jar
+    archives sourcesJar
+}
+
+configure(install.repositories.mavenInstaller) {
+    pom.project {
+        groupId = mavenGroupId
+        artifactId = mavenArtifactId
+        version = mavenVersion
+    }
+}
+
+task createFolders(description: 'Creates the source folders if they do not exist.') doLast {
+    sourceSets*.allSource*.srcDirs*.each { File srcDir ->
+        if (!srcDir.isDirectory()) {
+            println "Creating source folder: ${srcDir}"
+            srcDir.mkdirs()
+        }
+    }
+}
