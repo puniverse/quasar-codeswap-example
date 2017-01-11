@@ -1,4 +1,4 @@
-# Qusar Hot Code Swapping Example
+# Quasar Hot Code Swapping Example
 
 ## Building
 
@@ -11,8 +11,10 @@ To build the main program:
 To build the module:
 
 ```sh
-./gradlew :quasar-codeswap-main:jar
+./gradlew :quasar-codeswap-module:jar
 ```
+
+(on Windows, `gradlew.bat` instead of `./gradlew`)
 
 ## Running
 
